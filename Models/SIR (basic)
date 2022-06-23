@@ -1,0 +1,50 @@
+require(deSolve)
+
+#implementing model equations
+sir<- function (t, y, parms) {
+  with(as.list(c(y, parms)),{
+    
+    dS=  a - b*S - beta*S*I + gamma*R
+    dI = + beta*S*I - (nu+b+alpha)*I
+    dR = nu*I-b*R-gamma*R
+    
+    list(c(dS, dI, dR))
+  })
+}
+
+
+#defining parameters
+popsize = 1e6
+lifespan = 10
+duration.of.infectiousness = 7/365
+virulence = 0
+loss.of.immunity = 0
+R0 = 1
+
+b=1/lifespan
+nu=1/duration.of.infectiousness
+beta=R0*(b+nu+virulence)/popsize
+
+parms = c(a=popsize/lifespan, b=b, beta=beta, nu=nu, 
+               alpha=virulence, gamma=loss.of.immunity)
+
+
+# state variables and initial conditions
+y <- c(S = popsize-4*10^5, I = 4*10^5, R = 0)
+
+#time specification 
+time <- seq(0, 0.5, 0.001)
+
+
+#solving the ode 
+out <- as.data.frame(ode(y = y, time = time, sir.model, parms = parms))
+head(out)
+
+
+
+#plotting 
+# time plot
+plot(out$S~out$time, col = "green", type = "l", ylim = c(0,popsize),
+       ylab = "number",xlab = "time (years)", main = "Time Plot")
+lines(out$I~out$time, col = "red")
+lines(out$R~out$time, col = "blue")

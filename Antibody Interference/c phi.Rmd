@@ -1,0 +1,90 @@
+---
+title: "c phi"
+output: html_document
+---
+
+```{r}
+hill <- function (c, phi, A){
+  m = 3
+  hill = c*(A)^m / (phi^m + A^m)
+  
+  return (hill)
+}
+
+
+R0_c <- function (c, phi){
+  
+  p = 8
+  beta = 5*10^(-5)
+  T0 = 10^6
+  alpha = 1
+  
+  constant <- p*beta*T0/alpha
+  d = 5
+  tot = 50
+  f = 0.5
+  
+  R0_c = constant*1/(d + hill(c, phi, f*tot) + hill(50, 50, (1-f)*tot))
+  
+  return(R0_c)
+}
+
+
+out <- matrix(nrow = 81, ncol = 81)
+
+C <- c(seq(10,90, by=1))
+P <- c(seq(10,90, by=1))
+
+for(i in 1:81){
+  for(j in 1:81){
+    out[[i,j]] <- R0_c(C[i], P[j])
+  }
+}
+```
+
+graphing
+
+```{r}
+library(ggplot2)
+
+R0 <- c()
+for(i in 1:81){
+  for(j in 1:81){
+      R0 <- append(R0, out[[i, j]])
+  }
+}
+
+c <- c()
+for(i in 10:90){
+  c = append(c, rep(i, 81))
+}
+
+Phi <- c(rep(seq(10,90,by=1),81))
+
+xmin <- c()
+for(i in 9:89){
+  xmin = append(xmin, rep(i, 81))
+}
+
+xmax <- c()
+for(i in 10:90){
+  xmax = append(xmax, rep(i, 81))
+}
+
+ymin <- c(rep(seq(10,90,by=1), 81))
+ymax <- c(rep(seq(11,91, by = 1), 81))
+
+r <- as.data.frame(cbind(c, Phi, R0, xmin, xmax, ymin, ymax))
+r
+
+
+ggplot(r, aes(c, Phi, fill= R0)) + 
+  geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax))+
+  scale_fill_distiller(palette = "PuOr")
+```
+
+
+
+
+
+

@@ -1,0 +1,94 @@
+---
+title: "draft"
+output: html_document
+---
+
+```{r}
+require(deSolve)
+
+#implementing model equations
+basic<- function (t, y, parms) {
+  with(as.list(c(parms)),{
+    y=pmax(y,0)
+    
+    # vectors for each population
+    V=y[1:(n)]   
+    I=y[n+1]
+    U=y[n+2]
+    
+    # make empty vectors of length n for the derivatives
+    dV=rep(0,n)
+    dI=0 
+    dU=0
+    
+    #setting up for the hill functions 
+    beta=rep(0,n)
+    d = rep(0,n)
+    
+    for(i in 1:n){
+       beta[i] = c1*i^m/(phi1^m + i^m)
+       d[i] = c2*(1-i^m/(phi2^m + i^m))
+    }
+    
+    # calculate the derivatives
+    dV[1] =  +p*I[1] - n*alpha*A*V[1] - beta[1]*U*V[1] - d[1]*V[1]
+    
+    for(i in 2:(n-1)){
+      dV[i] = +(n-(i-1))/n*alpha*A*V[i-1] - (n-i)/n*alpha*A*V[i] 
+              - beta[i]*U[1]*V[i] - d[i]*V[i]
+    }
+    
+    dV[n] = +1/n*alpha*A*V[n-1] - beta[n]*U[1]*V[n] - d[n]*V[n]
+    
+    dI[1]= + U[1]*(sum(beta[1:n]*V[1:n])) - di*I[1]
+    dU[1]= - U[1]*(sum(beta[1:n]*V[1:n]))
+
+# output the derivatives
+  dy=c(dV,dI, dU)
+   return(list(dy))
+  })
+}
+ 
+
+#defining parameters
+p = 10
+n = 5
+alpha = 1 # antibody bounding speed  
+A = 10 # antibody amount
+di = 0.2 # infected cells dying rate
+
+m = 2
+c1 = 5*10^(-5)
+phi1 = 7
+c2 = 5
+phi2 = 7
+
+
+parms = c(p=p, n=n, alpha=alpha, A=A,di=di,
+          m=m, c1=c1, phi1=phi1, c2=c2, phi2=phi2)
+
+#time specification 
+time <- seq(0, 18, 0.1)
+
+#initial conditions
+statenames <-c(paste('V',1:(n), sep=''), 'I','U')
+y <- rep(0, n+2)
+names(y)<-statenames
+y[grep('I',statenames)]<-10
+y[grep('U',statenames)]<-10^6
+y[grep('V1', statenames)]<-100
+
+
+#solving the ode 
+out <- as.data.frame(ode(y = y, time = time, basic, parms = parms))
+out
+```
+
+```{r}
+plot(out$V5~out$time, col = "red", type = "l", ylim = c(0, 10^6),
+     ylab = "Population",xlab = "time (days)", main = "Stages Model, n=5")
+lines(out$I~out$time, col = "purple")
+legend("topright", legend = c("Infected Cells", "Virus(Last Stage)"),
+       col = c("purple","red"),lty = 1, cex = 0.8)
+```
+

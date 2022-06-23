@@ -1,0 +1,51 @@
+require(deSolve)
+
+#implementing model equations
+basic<- function (t, y, parms) {
+  with(as.list(c(y, parms)),{
+    
+    dU = - beta*U*V
+    dI = beta*U*V - alpha*I
+    dV = p*I - d*V
+    
+    list(c(dU,dI,dV))
+  })
+}
+
+
+#defining parameters
+beta = 0.000005
+p = 8
+alpha = 1
+d1 = 5
+d2 = 10
+d3 = 20
+d4 = 40
+
+parms1 = c(beta=beta, p=p, alpha=alpha, d=d1)
+parms2 = c(beta=beta, p=p, alpha=alpha, d=d2)
+parms3 = c(beta=beta, p=p, alpha=alpha, d=d3)
+parms4 = c(beta=beta, p=p, alpha=alpha, d=d4)
+
+# state variables and initial conditions
+y <- c(U = 10^6, I = 5, V = 100)
+
+#time specification 
+time <- seq(0, 14, 0.1)
+
+
+#solving the ode 
+out1 <- as.data.frame(ode(y = y, time = time, basic, parms = parms1))
+out2 <- as.data.frame(ode(y = y, time = time, basic, parms = parms2))
+out3 <- as.data.frame(ode(y = y, time = time, basic, parms = parms3))
+out4 <- as.data.frame(ode(y = y, time = time, basic, parms = parms4))
+
+
+
+#plotting 
+# time plot
+plot(out1$I~out1$time, col = "blue", type = "l", ylim = c(0,6e+05),
+     ylab = "Population",xlab = "time (days)", main = "infected population under different d", )
+lines(out2$I~out2$time, col = "blue", lty = 2)
+lines(out3$I~out3$time, col = "blue", lty = 3)
+lines(out4$I~out4$time, col = "blue", lty = 4)

@@ -1,0 +1,71 @@
+using Pkg
+
+Pkg.update()
+
+Pkg.add("DifferentialEquations")
+
+#putting in equations
+function SIRS!(du,u,p,t) # du: derivatives of states, u: states, p: additional params, t: time
+    X,E,A,S,Tp,Q,R = u
+    beta_A,beta_S,gamma,theta,alpha,omega,nu_A,delta,sigma,nu_Q = p
+    du[1]= - beta_A*X*A - beta_S*X*S + gamma*R
+    du[2] = beta_A*X*A + beta_S*X*S - theta*E
+    du[3] = theta*E*alpha - omega*A - nu_A*A
+    du[4] = theta*E*(1-alpha) - delta*S
+    du[5] = delta*S + omega*A - sigma*Tp
+    du[6] = sigma*Tp - nu_Q*Q
+    du[7] = nu_A*A + nu_Q*Q - gamma*R
+    nothing
+end
+
+#Solving
+using DifferentialEquations
+
+popsize = 1e6
+duration_of_infectiousness_A = 5/365
+duration_of_infectiousness_S = 8/365
+duration_of_quarentine = 14/365
+loss_of_immunity = 12/365
+R0 = 8
+latent_period = 3/365
+prop_asynx = 0.5
+quarentine_rate = 0.5/365
+regular_testing_rate = 14/365
+sym_testing_rate = 1/365
+sigma = 1/(quarentine_rate)
+contact_tracing = 0.8*R0*sigma
+nu_S = 1/(duration_of_infectiousness_S)
+nu_A = 1/(duration_of_infectiousness_A)
+
+
+u0 = [popsize - 1,1,0,0,0,0,0]
+tspan = (0, 0.6)
+params = [R0*nu_A/popsize, R0*nu_S/popsize,12/365,1/(latent_period),prop_asynx,
+1/(regular_testing_rate+contact_tracing),1/(duration_of_infectiousness_A),1/(sym_testing_rate),
+1/(quarentine_rate),1/(duration_of_quarentine)]
+
+ode_prob = ODEProblem(SIRS!, u0, tspan, params);
+
+
+#Plotting
+using Plots
+
+ode_sol = solve(ode_prob)
+plot(ode_sol, tspan=(0,0.6))
+
+
+#Jacobian
+Pkg.add("ForwardDiff")
+using ForwardDiff
+
+function SIRS_jac_auto!(J,u,p,t)
+    out = zero(u)
+    ForwardDiff.jacobian!(J,(y,x) -> SIRS!(y,x,p,t),out,u) #doing y,x with respect to j,u
+    nothing
+end
+
+jac = ODEFunction(SIRS!, jac=SIRS_jac_auto!)
+ode_prob_jac = ODEProblem(jac, u0, tspan, params);
+
+ode_sol_jac = solve(ode_prob_jac, Rosenbrock23())
+plot(ode_sol_jac, tspan=(0,0.6))

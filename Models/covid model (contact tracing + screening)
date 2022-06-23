@@ -1,0 +1,75 @@
+require(deSolve)
+
+#implementing model equations
+seir<- function (t, y, parms) {
+  with(as.list(c(y, parms)),{
+    
+    dX = - beta_A*X*A - beta_S*X*S + gamma*R
+    dE = beta_A*X*A + beta_S*X*S - theta*E
+    dA = theta*E*alpha - omega*A - nu_A*A 
+    dS = theta*E*(1-alpha) - delta*S
+    dTp = delta*S + omega*A - sigma*Tp
+    dQ = sigma*Tp - nu_Q*Q
+    dR = nu_A*A + nu_Q*Q - gamma*R
+    
+    list(c(dX, dE, dA ,dS, dTp, dQ, dR))
+  })
+}
+
+
+#defining parameters
+popsize = 1e6
+duration.of.infectiousness_A = 5/365
+duration.of.infectiousness_S = 8/365
+duration.of.quarentine = 14/365
+loss.of.immunity = 12/365
+R0 = 8
+latent.period = 3/365
+prop.asynx = 0.5
+quarentine.rate = 0.5/365
+regular.testing.rate = 14/365
+sym.testing.rate = 1/365
+contact.tracing = 0.8*R0*sigma
+
+
+nu_A = 1/(duration.of.infectiousness_A)
+nu_S = 1/(duration.of.infectiousness_S)
+nu_Q = 1/(duration.of.quarentine)
+beta_A = R0*nu_A/popsize
+beta_S = R0*nu_S/popsize
+theta = 1/(latent.period)
+alpha = prop.asynx
+sigma = 1/(quarentine.rate)
+omega = 1/(regular.testing.rate+contact.tracing)
+delta = 1/(sym.testing.rate)
+
+parms = c(nu_A=nu_A, nu_Q=nu_Q, beta_A=beta_A,beta_S=beta_S, 
+          gamma=loss.of.immunity, theta=theta,
+          alpha=alpha, sigma=sigma,omega=omega)
+
+
+# state variables and initial conditions
+y <- c(X = popsize - 1, E = 1, A = 0, S = 0, Tp = 0, Q = 0, R = 0)
+
+#time specification 
+time <- seq(0, 0.6, 0.001)
+
+
+#solving the ode 
+out <- as.data.frame(ode(y = y, time = time, seir, parms = parms))
+head(out)
+
+
+
+#plotting 
+# time plot
+plot(out$X~out$time, col = "green", type = "l", ylim = c(0,popsize),
+     ylab = "Population",xlab = "time (years)", main = "Simulation Time Plot")
+lines(out$A~out$time, col = "red")
+lines(out$S~out$time, col = "black")
+lines(out$Q~out$time, col = "purple")
+lines(out$R~out$time, col = "blue")
+legend("right", legend = c("suspectible", "asymptomatic", "symptomatic",
+                            "quarentine", "recover"),
+       col = c("green","red","black","purple","blue"),lty = 1, cex = 0.8)
+
